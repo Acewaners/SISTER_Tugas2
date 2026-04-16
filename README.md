@@ -95,6 +95,43 @@ SISTER/
 
 ---
 
+## Perbandingan Model
+
+### Perbandingan Struktur
+
+| Aspek              | Request-Response                    | Message Passing                      |
+| ------------------ | ----------------------------------- | -------------------------------- |
+| Arsitektur         | Client-Server                       | Peer-to-peer (Ring topology)                  |
+| Jumlah pesan/sesi  | 2 (REQ + RESP)                      | 3 hop per sesi (termasuk ACK)                   |
+| Kompleksitas       | Rendah                              | Sedang                           |
+| Coupling           | Tight (client harus kenal server)   | Medium (node ↔ tetangga saja)                   |
+| Skalabilitas       | Rendah (bottleneck di server)       | Sedang (load terdistribusi)                   |
+| Use Case Nyata     | REST API, HTTP, Query DB            | MPI, Distributed Chat, Gossip Protocol|
+
+### Perbandingan Perilaku (saat simulasi berjalan)
+
+| Metrik            | Request-Response                          | Message Passing                          |
+| ----------------- | ----------------------------------------  | -------------------------------- |
+| Total Pesan       | 2 × N (setiap sesi kirim 2 pesan)         | 3 × N (setiap sesi ada 3 hop)          |
+| Rata-rata Latency | Delay server + 1× transmission time       | Delay × 0.6 × 3 hop ≈ 1.8× delay           |
+| Throughput        | Bergantung kemampuan server               | Bergantung jumlah hop & topology |
+| Blocking          | Ya — client menunggu sampai dapat RESP    | Tidak — pesan diteruskan async           |
+
+### Kapan Pakai Model Yang Mana?
+
+**Request-Response** → Komunikasi **sinkron** client-server. Cocok saat client butuh jawaban segera sebelum bisa lanjut, misal: query database, fetch data API, ambil halaman web.
+
+**Message Passing** → Sistem **terdistribusi peer-to-peer**. Cocok saat tidak ada satu server pusat, pesan harus merambat antar node, misal: blockchain gossip protocol, distributed computing dengan MPI, aplikasi chat terdistribusi.
+
+### Validasi Hasil Simulasi
+
+Hasil simulasi bisa diverifikasi lewat panel kanan (tab **Perbandingan**):
+- **Total Pesan Req-Res** = 2 × jumlah pesan (REQ + RESP per sesi)
+- **Total Pesan Msg-Pass** = jumlah sesi (setiap sesi = 1 pesan yang merambat 3 hop)
+- **Latency** dihitung dari rata-rata waktu proses per sesi
+
+---
+
 ## Teknologi yang Dipakai
 - HTML5 Canvas API (bawaan browser, tidak perlu install)
 - JavaScript biasa (ES6+)
