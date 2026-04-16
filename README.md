@@ -68,7 +68,7 @@ Setelah itu buka browser ke `http://127.0.0.1.8000`
   2. Stub client kirim CALL (marshall/serialisasi parameter) ke Server Stub
   3. Server Stub proses (eksekusi fungsi di remote)
   4. Server Stub kirim CALL RESULT ke Client Stub
-  5. Client Stub unmarshall/deserialize hasil,递给 Client
+  5. Client Stub unmarshall/deserialize hasil
 - **Sifat Model ini:**
   - Coupling : Tight (client harus ketahui interface/server)
   - Skalabilitas : Rendah-Sedang
