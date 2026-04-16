@@ -1,7 +1,7 @@
 # DistriCom Simulator
 
 ## Apakah ini?
-Simulasi visual interaktif buat belajar 2 model komunikasi dalam sistem terdistribusi. Dibuat menggunakan HTML 5 dan JAvaScript, jadi tidak membutuhkan install apa-apa.
+Simulasi visual interaktif buat belajar 4 model komunikasi dalam sistem terdistribusi. Dibuat menggunakan HTML5 dan JavaScript, jadi tidak membutuhkan install apa-apa.
 
 --- 
 ## Cara Menggunakan
@@ -45,6 +45,35 @@ Setelah itu buka browser ke `http://127.0.0.1.8000`
   - Skalabilitas : Sedang
   - Throughput : Tergantung jumlah hop
 
+
+## Model Komunikasi Lainnya 
+
+### 3. Publisher-Subscriber
+- **Penjelasan Singkat:** Model async. Publisher mengirim pesan ke sebuah topik, Subscriber yang subscribe ke topik tersebut menerima pesan tanpa saling kenal langsung.
+- **Contoh Nyata:** Kafka, MQTT, Redis Pub/Sub, sistem notifikasi
+- **Alur Proses:**
+  1. Publisherрегистр kirim EVENT ke Message Broker / Topic
+  2. Broker/Topic menerima dan menyimpan pesan
+  3. Subscriber yang tertarik (subscribed) menerima pesan dari broker
+- **Sifat Model ini:**
+  - Coupling : Very Loose (publisher & subscriber tidak saling kenal)
+  - Skalabilitas : Tinggi
+  - Throughput : Tinggi (bisa banyak publisher & subscriber)
+
+### 4. Remote Procedure Call (RPC)
+- **Penjelasan Singkat:** Client memanggil fungsi yang seolah-olah lokal, tapi sebenarnya berjalan di remote server. Stub di kedua sisi menangani serialisasi dan komunikasi.
+- **Contoh Nyata:** gRPC, XML-RPC, Thrift, Apache Thrift, Windows RPC
+- **Alur Proses:**
+  1. Client Side Stub menerima pemanggilan fungsi
+  2. Stub client kirim CALL (marshall/serialisasi parameter) ke Server Stub
+  3. Server Stub proses (eksekusi fungsi di remote)
+  4. Server Stub kirim CALL RESULT ke Client Stub
+  5. Client Stub unmarshall/deserialize hasil,递给 Client
+- **Sifat Model ini:**
+  - Coupling : Tight (client harus ketahui interface/server)
+  - Skalabilitas : Rendah-Sedang
+  - Throughput : Sedang-Tinggi
+
 ---
 
 ## Fitur yang Bisa di Ubah-Ubah
@@ -61,7 +90,7 @@ Setelah itu buka browser ke `http://127.0.0.1.8000`
 
 ### Panel Kanan
 - **Tab Metrik:** Lihat jumlah pesan terkirim, throughput, dan latency
-- **Tab Perbandingan:** Membandingkan kedua model
+- **Tab Perbandingan:** Membandingkan keempat model
 - **Tab Log:** Catatan langkah demi langkas ketika komunikasi sedang berjalan
 
 ---
@@ -75,10 +104,12 @@ Setelah itu buka browser ke `http://127.0.0.1.8000`
 ---
 
 ## Warna Tiap Model
-| Model            | Warna           |
-| ---------------- | --------------- |
-| Request-Response | Biru (#38bdf8)  |
-| Message Passing  | Hijau (#4ade80) |
+| Model             | Warna            |
+| ----------------- | ---------------- |
+| Request-Response  | Biru (#38bdf8)   |
+| Message Passing   | Hijau (#4ade80)  |
+| Publisher-Sub     | Oranye (#fb923c) |
+| RPC               | Ungu (#c084fc)   |
 
 ---
 
@@ -99,23 +130,25 @@ SISTER/
 
 ### Perbandingan Struktur
 
-| Aspek              | Request-Response                    | Message Passing                      |
-| ------------------ | ----------------------------------- | -------------------------------- |
-| Arsitektur         | Client-Server                       | Peer-to-peer (Ring topology)                  |
-| Jumlah pesan/sesi  | 2 (REQ + RESP)                      | 3 hop per sesi (termasuk ACK)                   |
-| Kompleksitas       | Rendah                              | Sedang                           |
-| Coupling           | Tight (client harus kenal server)   | Medium (node ↔ tetangga saja)                   |
-| Skalabilitas       | Rendah (bottleneck di server)       | Sedang (load terdistribusi)                   |
-| Use Case Nyata     | REST API, HTTP, Query DB            | MPI, Distributed Chat, Gossip Protocol|
+| Aspek              | Request-Response                    | Message Passing                   | Publisher-Subscriber                        | RPC                                |
+| ------------------ | ----------------------------------- | --------------------------------- | ------------------------------------------- | ---------------------------------- |
+| Arsitektur         | Client-Server                       | Peer-to-peer (Ring)               | Pub/Sub + Broker                            | Client-Stub / Server-Stub          |
+| Jumlah pesan/sesi  | 2 (REQ + RESP)                      | 3 hop (termasuk ACK)              | 1 publish → N deliver                       | 2 (CALL + RESULT)                  |
+| Kompleksitas       | Rendah                              | Sedang                            | Sedang-Tinggi                               | Rendah-Sedang                      |
+| Coupling           | Tight (client ↔ server)             | Medium (node ↔ tetangga)          | Very Loose (pub ↔ sub via broker)           | Tight (client ↔ server)            |
+| Skalabilitas       | Rendah (bottleneck server)          | Sedang (load terdistribusi)       | Tinggi (banyak subcriber)                   | Rendah-Sedang                      |
+| Use Case Nyata     | REST API, HTTP, Query DB            | MPI, Distributed Chat, Gossip     | Kafka, MQTT, Redis Pub/Sub, Notifikasi      | gRPC, XML-RPC, Apache Thrift       |
 
 ### Perbandingan Perilaku (saat simulasi berjalan)
 
-| Metrik            | Request-Response                          | Message Passing                          |
-| ----------------- | ----------------------------------------  | -------------------------------- |
-| Total Pesan       | 2 × N (setiap sesi kirim 2 pesan)         | 3 × N (setiap sesi ada 3 hop)          |
-| Rata-rata Latency | Delay server + 1× transmission time       | Delay × 0.6 × 3 hop ≈ 1.8× delay           |
-| Throughput        | Bergantung kemampuan server               | Bergantung jumlah hop & topology |
-| Blocking          | Ya — client menunggu sampai dapat RESP    | Tidak — pesan diteruskan async           |
+| Metrik             | Request-Response                          | Message Passing                         | Publisher-Subscriber                              | RPC                                  |
+| -----------------  | ----------------------------------------  | --------------------------------------- | ------------------------------------------------- | ------------------------------------ |
+| Total Pesan        | 2 × N (REQ + RESP per sesi)               | 3 × N (3 hop per sesi)                  | 1 × N publish → N subscriber terima               | 2 × N (CALL + RESULT per sesi)                                |
+| Rata-rata Latency  | Delay server + 1× transmission time       | Delay × 0.6 × 3 hop ≈ 1.8× delay        | Delay broker + N × delivery (async)               | Delay server + 2× transmission time                                 |  
+| Throughput         | Bergantung kemampuan server               | Bergantung jumlah hop & topologi        | Tinggi (banyak subscriber paralel)                | Sedang-Tinggi                        |
+| Blocking           | Ya — client menunggu RESP                 | Tidak — pesan diteruskan async          | Tidak — subscriber terima saat ada pesan          | Ya — client menunggu RESULT                               |
+| Sinkronisasi       | Sinkron                                   | Async/Event-driven                      | Async/Event-driven                                | Sinkron                              |
+
 
 ### Kapan Pakai Model Yang Mana?
 
@@ -123,12 +156,20 @@ SISTER/
 
 **Message Passing** → Sistem **terdistribusi peer-to-peer**. Cocok saat tidak ada satu server pusat, pesan harus merambat antar node, misal: blockchain gossip protocol, distributed computing dengan MPI, aplikasi chat terdistribusi.
 
+**Publisher-Subscriber** → Sistem **event-driven & loosely coupled**. Cocok saat publisher dan subscriber tidak perlu saling kenal, misal: sistem notifikasi real-time, event streaming, IoT sensor data distribution, broadcast ke banyak consumer.
+
+**RPC** → Pemanggilan **fungsi jarak jauh** yang terlihat seperti fungsi lokal. Cocok saat interaksi client-server berupa call procedure/function, misal: microservice communication (gRPC), remote command execution, distributed object systems.
+
 ### Validasi Hasil Simulasi
 
 Hasil simulasi bisa diverifikasi lewat panel kanan (tab **Perbandingan**):
 - **Total Pesan Req-Res** = 2 × jumlah pesan (REQ + RESP per sesi)
-- **Total Pesan Msg-Pass** = jumlah sesi (setiap sesi = 1 pesan yang merambat 3 hop)
+- **Total Pesan Msg-Pass** = 3 × jumlah sesi (setiap sesi = 1 pesan yang merambat 3 hop)
 - **Latency** dihitung dari rata-rata waktu proses per sesi
+
+Dengan 2 model lainnya 
+- **Total Pesan Pub-Sub** = 1 × N publish → didistribusikan ke N subscriber
+- **Total Pesan RPC** = 2 × jumlah pesan (CALL + RESULT per sesi)
 
 ---
 
@@ -136,3 +177,6 @@ Hasil simulasi bisa diverifikasi lewat panel kanan (tab **Perbandingan**):
 - HTML5 Canvas API (bawaan browser, tidak perlu install)
 - JavaScript biasa (ES6+)
 - CSS3 dengan CSS Variables
+
+## Link Repository GitHub
+https://github.com/Acewaners/SISTER_Tugas2
