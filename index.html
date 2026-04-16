@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DistriCom Simulator - Model Komunikasi Sistem Terdistribusi</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ========== HEADER ========== -->
+<header>
+  <div class="logo">
+    <div>
+      <h1>DistriCom Simulator</h1>
+      <span>Simulasi Model Komunikasi Sistem Terdistribusi</span>
+    </div>
+  </div>
+  <div class="header-info">SISTER SMT-6 | Bahasa Indonesia</div>
+</header>
+
+<!-- ========== MAIN ========== -->
+<div class="app-container">
+
+  <!-- PANEL KIRI -->
+  <div class="panel-left">
+
+    <!-- Pilih Model -->
+    <div class="panel-section">
+      <h3>Model Komunikasi</h3>
+      <div class="model-tabs">
+        <button class="model-tab active" data-m="req" onclick="selectModel('req')">
+          <span class="dot"></span> Request-Response
+        </button>
+        <button class="model-tab" data-m="msg" onclick="selectModel('msg')">
+          <span class="dot"></span> Message Passing
+        </button>
+      </div>
+    </div>
+
+    <!-- Parameter -->
+    <div class="panel-section">
+      <h3>Parameter Simulasi</h3>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Kecepatan</span>
+          <span class="value" id="speedVal">1.0x</span>
+        </div>
+        <input type="range" min="0.5" max="3" step="0.1" value="1"
+               oninput="updateSlider('speed', this.value)">
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Delay Server</span>
+          <span class="value" id="delayVal">500ms</span>
+        </div>
+        <input type="range" min="200" max="2000" step="100" value="500"
+               oninput="updateSlider('delay', this.value)">
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Jumlah Pesan</span>
+          <span class="value" id="countVal">3</span>
+        </div>
+        <input type="number" id="msgCount" min="1" max="10" value="3"
+               oninput="document.getElementById('countVal').textContent = this.value">
+      </div>
+    </div>
+
+    <!-- Aksi -->
+    <div class="panel-section">
+      <h3>Kontrol</h3>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="btnRun" onclick="runSim()">
+          Jalankan Simulasi
+        </button>
+        <button class="btn btn-secondary" onclick="resetSim()">
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Legenda -->
+    <div class="panel-section">
+      <h3>Legenda</h3>
+      <div class="legend">
+        <div class="legend-item">
+          <span class="legend-dot" style="background:var(--accent-req)"></span> Request-Response
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:var(--accent-msg)"></span> Message Passing
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CANVAS AREA -->
+  <div class="canvas-area">
+    <div class="canvas-toolbar">
+      <span class="model-title" id="canvasTitle" data-m="req">Request-Response</span>
+      <span class="status-badge status-idle" id="statusBadge">SIAP</span>
+    </div>
+    <div class="canvas-wrapper">
+      <canvas id="mainCanvas" width="660" height="440"></canvas>
+    </div>
+  </div>
+
+  <!-- PANEL KANAN -->
+  <div class="panel-right">
+
+    <div class="metrics-tabs">
+      <button class="metrics-tab active" onclick="switchTab('metrics', this)">Metrik</button>
+      <button class="metrics-tab" onclick="switchTab('compare', this)">Perbandingan</button>
+      <button class="metrics-tab" onclick="switchTab('log', this)">Log</button>
+    </div>
+
+    <!-- METRIK -->
+    <div class="metrics-content" id="tabMetrics">
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="dot" style="background:var(--accent-blue)"></span>
+          <span class="name">Pesan Terkirim</span>
+        </div>
+        <div class="metric-value" id="mSent">0</div>
+        <div class="metric-unit">pesan</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="dot" style="background:var(--accent-green)"></span>
+          <span class="name">Throughput</span>
+        </div>
+        <div class="metric-value" id="mTp">0.0</div>
+        <div class="metric-unit">pesan / detik</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="dot" style="background:var(--accent-yellow)"></span>
+          <span class="name">Rata-rata Latency</span>
+        </div>
+        <div class="metric-value" id="mLat">0</div>
+        <div class="metric-unit">milidetik (ms)</div>
+      </div>
+
+      <!-- Deskripsi Model -->
+      <div class="desc-card">
+        <h4 id="descTitle" style="color:var(--accent-req)">Request-Response</h4>
+        <p id="descText">Model sinkron: client mengirim request ke server, lalu menunggu response.</p>
+        <div class="desc-flow" id="descFlow">
+          1. Client --REQUEST--> Server<br>
+          2. Server memproses...<br>
+          3. Server --RESPONSE--> Client
+        </div>
+      </div>
+    </div>
+
+    <!-- PERBANDINGAN -->
+    <div class="metrics-content hidden" id="tabCompare">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Metrik</th>
+            <th style="color:var(--accent-req)">Req-Res</th>
+            <th style="color:var(--accent-msg)">Msg-Pass</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Kompleksitas</td><td>Rendah</td><td>Sedang</td></tr>
+          <tr><td>Skalabilitas</td><td>Rendah</td><td>Sedang</td></tr>
+          <tr><td>Coupling</td><td>Tight</td><td>Medium</td></tr>
+          <tr><td>Total Pesan</td><td id="cmpTotReq">-</td><td id="cmpTotMsg">-</td></tr>
+          <tr><td>Avg Latency</td><td id="cmpLatReq">-</td><td id="cmpLatMsg">-</td></tr>
+          <tr><td>Throughput</td><td id="cmpReq">-</td><td id="cmpMsg">-</td></tr>
+          <tr><td>Use Case</td><td style="font-size:9px">REST API</td><td style="font-size:9px">MPI, Chat</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- LOG -->
+    <div class="metrics-content hidden" id="tabLog">
+      <div class="log-container" id="logContainer"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="simulator.js"></script>
+</body>
+</html>
